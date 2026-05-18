@@ -1,0 +1,14 @@
+# 数据文件过滤
+data/raw/
+data/processed/
+outputs/
+*.csv
+*.xlsx
+*.parquet
+
+# 环境过滤
+__pycache__/
+.venv/
+venv/
+.idea/
+.vscode/
