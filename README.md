@@ -1,54 +1,69 @@
-Olist E-Commerce Data Intelligence Pipeline
-基于 Olist 真实交易数据集的全链路数据分析与算法建模项目
+# E-Commerce Data Intelligence Pipeline: From EDA to Predictive Modeling
+**基于 Olist 真实交易数据集的全链路电商数据科学与算法建模项目**
 
-项目概述
-本项目基于巴西电商平台 Olist 提供的公开交易数据集，构建了端到端的数据科学管线。项目内容涵盖基于 Schema 的数据质量检验、多表合并防膨胀处理、同期群留存分析、商品关联规则挖掘，以及基于无监督聚类与监督分类的机器学习建模，最终输出支持交互的可视化网页看板。核心目标是通过量化的数据工程手段，揭示用户生命周期特征与流失归因。
+## 📖 项目概述 (Project Overview)
+本项目基于巴西头部电商平台 Olist 提供的 10 万+ 真实脱敏交易数据集，构建了端到端的数据分析与机器学习管线（Pipeline）。项目旨在解决电商平台普遍面临的用户留存率衰减、干线物流卡点以及长尾用户运营成本过高等业务痛点。
 
-技术栈与核心方法论
-数据治理与数据工程：Pandas, Pydantic (数据契约校验), Parquet 列式存储, 规避笛卡尔积膨胀
+通过多模块的数据工程设计，本项目实现了从基础的**描述性统计（Descriptive Statistics）**，到**多变量因果推断（Multivariate Causal Inference）**，最终落地于**无监督聚类（Unsupervised Clustering）**与**监督分类模型（Supervised Classification）**的完整商业智能（BI）闭环。
 
-用户行为分析：同期群留存分析 (Cohort Analysis), 购物篮协同矩阵 (Market Basket Analysis)
+---
 
-无监督机器学习：K-Means 聚类, 肘部法则 (Elbow Method), 轮廓系数 (Silhouette Score), 特征对数变换 (Log1p Transformation), StandardScaler, 动态聚类打标
+## 🛠️ 技术栈与长尾知识点 (Tech Stack & Domain Expertise)
+* **数据工程与清洗**：Pandas, Parquet 列式存储优化, 异常值截断 (Winsorization), 规避笛卡尔积膨胀 (Cartesian Product Expansion)
+* **统计学与推断**：Spearman 秩相关系数, 独立样本 t 检验 (Welch's t-test), 卡方独立性检验 (Chi-square test), 统计显著性 (p-value)
+* **无监督机器学习**：K-Means 聚类, 对数变换平滑 (Log1p Transformation), 特征标准化 (StandardScaler), RFM 资产价值模型
+* **监督机器学习**：XGBoost 分类器, 规避数据穿越/目标泄露 (Target Leakage), 交叉验证, ROC-AUC 评估, 树模型特征重要性 (Feature Importance)
+* **商业智能与可视化**：时序同群组分析 (Cohort Analysis), 关联规则协同矩阵 (Co-occurrence Matrix), Plotly 交互式前端看板
 
-监督机器学习：XGBoost 分类器, 规避目标泄露 (Target Leakage), 分层交叉切分, ROC-AUC 评估, 树模型特征重要性 (Feature Importance)
+---
 
-可视化与商业智能：Plotly, 基于 HTML/CSS 的交互式前端大屏渲染
+## 🏗️ 核心业务模块拆解 (Modular Architecture)
 
-核心业务模块拆解
-模块一：数据清洗与质量追踪 (Data Cleaning & Quality Assessment)
-构建 Pydantic 契约定义字段边界，拦截无效枚举值数据。执行系统级的业务逻辑检测（如物流时间线倒置、极值耗时）与财务对账检验（订单包含商品总金额与实际支付总金额比对）。通过封装 QualityReport 类，记录各清洗阶段的数据淘汰率，输出量化的数据血统追踪表。
+### 模块一：探索性数据分析与多变量推断 (EDA & Statistical Inference)
+本模块主要负责大盘数据的质量核查与供应链时效的降维诊断。
+* **单变量分析 (Univariate Analysis)**：运用直方图与核密度估计 (KDE) 探明 `payment_value` (客单价) 的长尾偏态分布特征；通过频数统计界定各物流节点的时间绝对跨度。
+* **双变量分析 (Bivariate Analysis)**：
+  * **连续型 vs 连续型**：运用 Spearman 相关系数验证“订单金额”与“分期期数”的正相关单调性。
+  * **离散型 vs 连续型**：运用异方差 t 检验测算“信用卡”与“现金汇票 (Boleto)”用户客单价均值的统计学差异。
+* **多变量分层分析 (Multivariate Stratification)**：引入地理栅格 (Geo-spatial) 与时间截面作为控制变量，构建 7x24 小时热力矩阵，剥离混淆变量，量化圣保罗 (SP) 与亚马逊偏远州 (AM) 之间的物流时效代沟。
 
-模块二：分析宽表构建与用户行为洞察 (ABT & Behavior Analysis)
-处理一单多件商品与一单多笔支付的对应关系，采用先聚合后连结的处理策略，规避因多对多关联产生的数据与金额膨胀，构建底层分析宽表 (Analytical Base Table)。基于此宽表计算绝对时间差，输出用户月度同期群留存矩阵，并提取同订单内的商品联合频数，输出跨品类交叉搭售规则。
+### 模块二：高维特征工程与同群组留存阵列 (Feature Engineering & Cohort Matrix)
+* **关联规则协同矩阵 (Market Basket Co-occurrence)**：基于单笔订单内的商品明细 (Items)，计算跨品类 SKU 的联合频数，输出支持交叉销售 (Cross-selling) 的高频搭档组合。
+* **时序留存衰减模型 (Cohort Retention Analysis)**：以用户首次交易时间为锚点 (Anchor Date)，计算生命周期内的绝对月份差 (Cohort Index)，构建并可视化用户月度留存率衰减矩阵，客观评估平台的长期获客转化健康度。
 
-模块三：动态 RFM 聚类与流失预警 (RFM Clustering & Churn Prediction)
-提取独立用户的近度 (Recency)、频度 (Frequency) 与额度 (Monetary) 特征并进行抗偏态处理。引入降采样与时间熔断机制评估算法 K 值，基于评价指标选定 K=4 执行无监督聚类，并根据实际特征均值进行动态标签映射，避免硬编码。同时引入总履约时长与运费作为物流体验变量，训练 XGBoost 树模型，预测高价值用户流失概率并提取关键影响因子。
+### 模块三：基于无监督学习的用户资产分群 (Unsupervised Clustering: RFM Segmentation)
+* **特征构造与预处理**：提取每位独立访客的 Recency (近度)、Frequency (频度)、Monetary (额度) 原始特征。应用 `np.log1p` 处理长尾偏态，并利用 `StandardScaler` 消除量纲维度差异（Scale Mismatch）。
+* **K-Means 迭代聚类**：设定超参数 `n_clusters=4`，将 9 万量级用户划分为四个异质性群体。输出各簇的质心 (Centroids) 参数，从数学层面实证“帕累托法则 (Pareto Principle)”——锁定贡献平台 50% 以上营收的 3% 核心金主。
 
-模块四：交互式商业智能看板 (Interactive BI Dashboard)
-使用 Plotly 框架对分析结果进行可视化封装。将数据质量检查漏斗、留存热力图、RFM 群体画像雷达图与全局核心业务指标 (KPI) 进行逻辑整合，通过 Python 脚本直接生成并组装为支持数值悬停与视图缩放的独立 HTML 网页看板。
+### 模块四：规避数据穿越的流失预警分类器 (Supervised Learning: Churn Prediction)
+* **防泄露特征工程**：在构建训练集时，严格剔除 `Recency` 等直接包含目标变量信息（是否超过 180 天未复购）的穿越特征，引入 `days_total_fulfillment` (总履约时长) 与 `freight_value` (运费) 作为用户体验代理变量。
+* **XGBoost 建模与归因**：训练极端梯度提升树 (Extreme Gradient Boosting) 分类器。模型在测试集上的 ROC-AUC 达到 `0.8826`。通过提取 `feature_importances_`，客观证实“干线物流延误”与“高昂运费”为导致新客流失的首要负向驱动因子。
 
-核心商业洞察结论
-留存特征与运营方向：同期群留存矩阵显示，用户次月留存率整体低于 1%。数据表明该平台当前的用户交易行为具有单次博弈特征，长期复购粘性较弱。基于此数据表现，建议运营资源适度向提高单次客单价及关联商品交叉销售倾斜。
+---
 
-用户资产结构：RFM 聚类模型识别出占比约 20% 的核心高价值用户群体，该群体贡献了平台主要的营收份额，印证了帕累托法则在当前业务中的适用性。
+## 📊 核心商业洞察结论 (Key Business Insights)
 
-流失核心归因：XGBoost 模型（测试集 ROC-AUC 达到 0.88）特征重要性分析表明，订单总履约时长（days_total_fulfillment）是对用户流失预测贡献度最高的自变量，其次为运费。缩短干线物流时间是降低高价值用户流失率、提升体验的核心优化方向。
+1. **供应链物理卡点界定**：系统审批与仓储打包环节的均值耗时均小于 2 天，而干线运输阶段耗时占比达 74%（均值 9.33 天），确认为全链路最大效率瓶颈。
+2. **留存断崖与单次博弈机制**：Cohort 矩阵显示，次月留存率呈断崖式下跌（不足 1%），证实平台当前处于“高成本拉新、低粘性留存”的单次博弈（One-off Transaction）状态。
+3. **沉睡客群唤醒价值**：聚类算法识别出占比 34.18% 的“单次大额沉睡客群 (Sleeping Big-Spenders)”，其历史客单价均值为全局均值的 2.7 倍，应作为后续定向触达 (Retargeting) 的第一优选序列。
 
-物理目录结构
-Plaintext
+---
+
+## 📁 物理目录结构 (Repository Structure)
+
+```text
 ├── data/
-│   ├── raw/                            # 原始 CSV 数据集目录（不进入版本控制）
-│   └── processed/                      # 清洗后生成的 Parquet 列式存储文件
+│   ├── raw/                 # 原始 CSV 数据（因体积限制未上传，请参阅 data_dictionary.md）
+│   └── processed/           # 经过 cleaner.py 处理的纯净 Parquet 数据列式存储文件
 ├── notebooks/
-│   ├── 01_data_cleaning.ipynb          # 模块一：数据清理与质量核查
-│   ├── 02_user_value_analysis.ipynb    # 模块二：宽表构建、同期群与购物篮分析
-│   ├── 03_rfm_segmentation.ipynb       # 模块三：RFM 聚类评估与 XGBoost 建模
-│   └── 04_dashboard.ipynb              # 模块四：HTML 交互式大屏看板生成
+│   ├── 01_data_cleaning.ipynb        # 异常值处理与 ETL 预实验
+│   ├── 02_user_value_analysis.ipynb  # 宽表构建、同期群与购物篮分析
+│   ├── 03_rfm_segmentation.ipynb     # 无监督聚类与 XGBoost 分类器实验
+│   └── 04_dashboard.ipynb            # 基于 Plotly 的交互式前端 BI 看板
 ├── src/
-│   ├── cleaner.py                      # 数据校验与清洗引擎类
-│   ├── user_value.py                   # 宽表聚合与行为计算类
-│   ├── rfm.py                          # 聚类评估、动态打标与分类器类
-│   └── visualizer.py                   # 可视化图表生成与 HTML 渲染类
-├── requirements.txt                    # Python 运行环境依赖清单
-└── README.md                           # 项目说明文档
+│   ├── cleaner.py           # 数据预处理模块
+│   ├── user_value.py        # 同群组与关联矩阵计算模块
+│   ├── rfm.py               # 聚类与预测建模封装模块
+│   └── visualizer.py        # 绘图渲染与视图隔离模块
+├── requirements.txt         # 依赖项清单
+└── README.md                # 项目架构文档
