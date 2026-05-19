@@ -2,7 +2,7 @@ import os
 
 # 1. 定义需要创建的文件夹和文件
 structure = {
-    "src": ["cleaner.py", "funnel.py", "rfm.py", "visualizer.py"],
+    "src": ["cleaner.py", "user_value.py", "rfm.py", "visualizer.py"],
     "notebooks": ["01_data_cleaning.ipynb", "02_funnel_analysis.ipynb", "03_rfm_segmentation.ipynb",
                   "04_dashboard.ipynb"],
     "data/raw": [],

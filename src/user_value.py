@@ -25,6 +25,14 @@ class UserValueAnalyzer:
         self.df_orders['purchase_dt'] = pd.to_datetime(self.df_orders['order_purchase_timestamp'])
         self.df_orders['purchase_month'] = self.df_orders['purchase_dt'].dt.to_period('M')
 
+        # 【本次修复核心：补回履约时长计算，这是模块三 XGBoost 预测流失率的关键特征】
+        self.df_orders['order_delivered_customer_date'] = pd.to_datetime(
+            self.df_orders['order_delivered_customer_date'])
+        self.df_orders['days_total_fulfillment'] = (
+                                                           self.df_orders['order_delivered_customer_date'] -
+                                                           self.df_orders['purchase_dt']
+                                                   ).dt.total_seconds() / 86400
+
         # 2. 连结地理信息
         df_geo = pd.merge(
             self.df_orders,
@@ -50,51 +58,35 @@ class UserValueAnalyzer:
         return self.df_master
 
     def calculate_cohort_matrix(self) -> pd.DataFrame:
-        """
-        业务分析 1：计算用户月度同期群留存矩阵
-        面试价值：展示对用户生命周期 (LTV) 和复购规律的深刻理解
-        """
+        """业务分析 1：计算用户月度同期群留存矩阵"""
         if self.df_master is None:
             raise ValueError("请先调用 build_analytical_base_table() 生成主表数据！")
 
         df_timeline = self.df_master[['customer_unique_id', 'purchase_month']].drop_duplicates()
-
-        # 找到每个用户的首单月份
         df_timeline['first_month'] = df_timeline.groupby('customer_unique_id')['purchase_month'].transform('min')
 
-        # 计算相对月份差异 (即留存的第 N 个月)
         df_timeline['cohort_index'] = (
                 (df_timeline['purchase_month'].dt.year - df_timeline['first_month'].dt.year) * 12 +
                 (df_timeline['purchase_month'].dt.month - df_timeline['first_month'].dt.month)
         )
 
-        # 透视表构建群组矩阵
         cohort_pivot = df_timeline.groupby(['first_month', 'cohort_index'])['customer_unique_id'] \
             .nunique().reset_index() \
             .pivot(index='first_month', columns='cohort_index', values='customer_unique_id') \
             .fillna(0).astype(int)
 
-        # 转换为百分比留存率
         cohort_matrix = cohort_pivot.divide(cohort_pivot.iloc[:, 0], axis=0).round(4) * 100
         return cohort_matrix
 
     def calculate_market_basket(self) -> pd.Series:
-        """
-        业务分析 2：计算跨品类购物篮协同矩阵
-        面试价值：不仅看单品，还能产出交叉销售 (Cross-selling) 的运营策略建议
-        """
+        """业务分析 2：计算跨品类购物篮协同矩阵"""
         if self.df_master is None:
             raise ValueError("请先调用 build_analytical_base_table() 生成主表数据！")
 
         df_basket = self.df_master[['order_id', 'product_category_name']].drop_duplicates()
-
-        # 自连接，寻找同一订单内的品类组合
         df_paired = pd.merge(df_basket, df_basket, on='order_id', suffixes=('_A', '_B'))
-
-        # 剔除同品类自连接 (A买A) 的无意义数据
         df_pairs = df_paired[df_paired['product_category_name_A'] != df_paired['product_category_name_B']]
 
-        # 统计组合频次
         basket_rules = df_pairs.groupby(['product_category_name_A', 'product_category_name_B']) \
             .size().sort_values(ascending=False)
 
